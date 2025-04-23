@@ -1,0 +1,42 @@
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.pyc
+
+# Django
+*.sqlite3
+*.log
+db.sqlite3
+/media/
+staticfiles/
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+venv/
+.env/
+
+# Migrations
+**/migrations/*.py
+**/migrations/*.pyc
+
+# Node (if you ever add a frontend)
+node_modules/
+
+# Backup files
+*.bak
+*.swp
+*.tmp
+
+# Build
+dist/
+build/

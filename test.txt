@@ -1,0 +1,10 @@
+from django_ledger.models.accounts import AccountModel
+
+from django_ledger.models.coa import ChartOfAccountModel
+
+coa = ChartOfAccountModel.objects.get(entity=ledger.entity)
+accounts = AccountModel.objects.filter(coa_model=coa).order_by('code')
+
+
+for acc in accounts:
+    print(f"{acc.name} | Code: {acc.code} | Role: {acc.role} | Depth: {acc.depth}")
