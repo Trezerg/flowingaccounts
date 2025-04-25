@@ -16,81 +16,109 @@ class Company(models.Model):
 
 
     def create_account_structure(self):
-        from django_ledger.models.accounts import AccountModel
-        from django_ledger.models.coa import ChartOfAccountModel
+        # Check if COA already exists for this entity
+        if ChartOfAccountModel.objects.filter(entity=self.entity).exists():
+            return ChartOfAccountModel.objects.get(entity=self.entity)
 
-        # Check if COA already exists
-        existing_coa = ChartOfAccountModel.objects.filter(entity=self.entity).first()
-        if existing_coa:
-            return existing_coa
-
-        # Generate unique slug
-        base_slug = slugify(f"{self.entity.name}-{self.entity.id}")
-        slug = base_slug
-        i = 1
-        while ChartOfAccountModel.objects.filter(slug=slug).exists():
-            slug = f"{base_slug}-{i}"
-            i += 1
-
-        # Create the Chart of Accounts with the unique slug
+        # Create the Chart of Accounts WITH a slug
         coa = ChartOfAccountModel.objects.create(
             entity=self.entity,
             name=f"{self.entity.name} Chart of Accounts",
-            slug=slug  # ✅ Now guaranteed to be unique and not blank
-)
+            slug=slugify(f"{self.entity.name}-{self.entity.id}")
+        )
 
-        with transaction.atomic():
-            # ✅ Create Root
-            root = AccountModel.add_root(
-                name="Root Account",
-                code="0000",
+        # Create the root account
+        root = AccountModel.add_root(
+            name="Root",
+            code="0000",
+            role="Root",
+            coa_model=coa
+        )
+
+        # Create main account categories with coa_model in the initial creation
+        if not AccountModel.objects.filter(code='1000', coa_model=coa).exists():
+            asset = root.add_child(
+                name="Assets",
+                code="1000",
+                role="Asset",
+                coa_model=coa
+            )
+
+        if not AccountModel.objects.filter(code='2000', coa_model=coa).exists():
+            liability = root.add_child(
+                name="Liabilities",
+                code="2000",
+                role="Liability",
+                coa_model=coa
+            )
+
+        if not AccountModel.objects.filter(code='3000', coa_model=coa).exists():
+            equity = root.add_child(
+                name="Equity",
+                code="3000",
                 role="Equity",
                 coa_model=coa
             )
 
-            # ✅ Core Account Groups
-            groups = {
-                "Assets": {"code": "1000", "role": "Asset"},
-                "Liabilities": {"code": "2000", "role": "Liability"},
-                "Equity": {"code": "3000", "role": "Equity"},
-                "Revenue": {"code": "4000", "role": "Revenue"},
-                "Expenses": {"code": "5000", "role": "Expense"},
-            }
+        if not AccountModel.objects.filter(code='4000', coa_model=coa).exists():
+            revenue = root.add_child(
+                name="Revenue",
+                code="4000",
+                role="Revenue",
+                coa_model=coa
+            )
 
-            group_nodes = {}
+        if not AccountModel.objects.filter(code='5000', coa_model=coa).exists():
+            expense = root.add_child(
+                name="Expenses",
+                code="5000",
+                role="Expense",
+                coa_model=coa
+            )
 
-            for name, config in groups.items():
-                group_nodes[name] = root.add_child(
-                    name=name,
-                    code=config["code"],
-                    role=config["role"],
-                    coa_model=coa
-                )
+        # Create some common sub-accounts with coa_model in the initial creation
+        # Assets
+        if not AccountModel.objects.filter(code='1100', coa_model=coa).exists():
+            cash = asset.add_child(
+                name="Cash",
+                code="1100",
+                role="Asset",
+                coa_model=coa
+            )
 
-            # ✅ Sub-accounts
-            sub_accounts = {
-                "Assets": [
-                    ("Cash", "1100"),
-                    ("Accounts Receivable", "1200"),
-                    ("Inventory", "1300"),
-                ],
-                "Liabilities": [
-                    ("Accounts Payable", "2100"),
-                ],
-                "Equity": [
-                    ("Retained Earnings", "3100"),
-                ],
-            }
+        if not AccountModel.objects.filter(code='1200', coa_model=coa).exists():
+            accounts_receivable = asset.add_child(
+                name="Accounts Receivable",
+                code="1200",
+                role="Asset",
+                coa_model=coa
+            )
 
-            for group, accounts in sub_accounts.items():
-                for name, code in accounts:
-                    if not AccountModel.objects.filter(code=code, coa_model=coa).exists():
-                        group_nodes[group].add_child(
-                            name=name,
-                            code=code,
-                            role=group_nodes[group].role,
-                            coa_model=coa
-                        )
+        # Liabilities
+        if not AccountModel.objects.filter(code='2100', coa_model=coa).exists():
+            accounts_payable = liability.add_child(
+                name="Accounts Payable",
+                code="2100",
+                role="Liability",
+                coa_model=coa
+            )
+
+        # Equity
+        if not AccountModel.objects.filter(code='3100', coa_model=coa).exists():
+            retained_earnings = equity.add_child(
+                name="Retained Earnings",
+                code="3100",
+                role="Equity",
+                coa_model=coa
+            )
+
+        # Add more asset accounts
+        if not AccountModel.objects.filter(code='1300', coa_model=coa).exists():
+            inventory = asset.add_child(
+                name="Inventory",
+                code="1300",
+                role="Asset",
+                coa_model=coa
+            )
 
         return coa
-
