@@ -5,6 +5,8 @@ from django_ledger.models.journal_entry import JournalEntryModel
 from django_ledger.models.transactions import TransactionModel
 from api.utils.journal import post_journal_entry
 from api.models.logging import JournalActivityLogModel
+from api.models.tax import TaxRule
+from api.models.payment import PaymentModel
 
 
 
