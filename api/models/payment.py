@@ -1,8 +1,9 @@
 from django.db import models
 from django_ledger.models import LedgerModel, AccountModel, JournalEntryModel, TransactionModel
-from api.models import Company, InvoiceModel, BillModel
+from .company import Company
+from .invoice import InvoiceModel
+from .bill import BillModel
 from api.utils.journal import post_journal_entry
-from decimal import Decimal
 
 class PaymentModel(models.Model):
     PAYMENT_METHODS = [

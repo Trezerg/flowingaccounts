@@ -1,6 +1,7 @@
+# api/models/tax.py
 from django.db import models
 from django_ledger.models import AccountModel
-from api.models import Company
+from .company import Company
 
 class TaxRule(models.Model):
     REGION_CHOICES = [
@@ -17,4 +18,4 @@ class TaxRule(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.name} ({self.rate}%) — {self.region}" 
+        return f"{self.name} ({self.rate}%) — {self.region}"
