@@ -2,7 +2,6 @@ from django_ledger.models.journal_entry import JournalEntryModel
 from django_ledger.models.transactions import TransactionModel
 from api.models.logging import JournalActivityLogModel
 from django.utils import timezone
-from api.models import JournalActivityLogModel
 from django.utils import timezone
 from datetime import timedelta
 
@@ -29,6 +28,8 @@ def get_journal_snapshot(entry):
 
 
 def post_journal_entry(entry, user=None, force=False) -> bool:
+    from api.models.logging import JournalActivityLogModel  # ✅ local import
+
     """
     Posts a journal entry, verifies it, and logs the action with a snapshot.
     """
