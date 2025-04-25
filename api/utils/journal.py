@@ -1,12 +1,10 @@
-from django_ledger.models.journal_entry import JournalEntryModel
-from django_ledger.models.transactions import TransactionModel
-from api.models.logging import JournalActivityLogModel
-from django.utils import timezone
-from django.utils import timezone
-from datetime import timedelta
-
-
 def get_journal_snapshot(entry):
+    from django_ledger.models.journal_entry import JournalEntryModel
+    from django_ledger.models.transactions import TransactionModel
+    from api.models.logging import JournalActivityLogModel
+    from django.utils import timezone
+    from django.utils import timezone
+    from datetime import timedelta
     return {
         "uuid": str(entry.uuid),
         "je_number": entry.je_number or "",
@@ -29,6 +27,12 @@ def get_journal_snapshot(entry):
 
 def post_journal_entry(entry, user=None, force=False) -> bool:
     from api.models.logging import JournalActivityLogModel  # ✅ local import
+    from django_ledger.models.journal_entry import JournalEntryModel
+    from django_ledger.models.transactions import TransactionModel
+    from api.models.logging import JournalActivityLogModel
+    from django.utils import timezone
+    from django.utils import timezone
+    from datetime import timedelta
 
     """
     Posts a journal entry, verifies it, and logs the action with a snapshot.
@@ -67,6 +71,13 @@ def post_journal_entry(entry, user=None, force=False) -> bool:
 import traceback
 
 def unpost_journal_entry(entry, user=None, force=False) -> bool:
+    from django_ledger.models.journal_entry import JournalEntryModel
+    from django_ledger.models.transactions import TransactionModel
+    from api.models.logging import JournalActivityLogModel
+    from django.utils import timezone
+    from django.utils import timezone
+    from datetime import timedelta
+
     if not force and not entry.is_posted():
         print(f"⚠️ Entry {entry.uuid} is not posted.")
         return False
