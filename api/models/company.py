@@ -37,6 +37,30 @@ class Company(models.Model):
             coa_model=coa
         )
 
+        # Assets
+        cash = asset.add_child(
+            name="Cash",
+            code="1100",
+            role="Asset",
+            coa_model=coa
+        )
+
+        accounts_receivable = asset.add_child(
+            name="Accounts Receivable",
+            code="1200",
+            role="Asset",
+            coa_model=coa
+        )
+
+        # Revenue
+        sales_revenue = revenue.add_child(
+            name="Sales Revenue",
+            code="4000",
+            role="Revenue",
+            coa_model=coa
+        )
+
+
         # Add other child accounts like Assets, Liabilities, etc.
         asset = root.add_child(name="Assets", code="1000", role="Asset", coa_model=coa)
         liability = root.add_child(name="Liabilities", code="2000", role="Liability", coa_model=coa)
