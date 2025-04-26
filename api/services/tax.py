@@ -1,4 +1,4 @@
-from api.models import TaxRuleModel
+from api.models import TaxRule
 from django_ledger.models.transactions import TransactionModel
 from decimal import Decimal
 
@@ -9,7 +9,7 @@ def calculate_and_apply_tax(company, journal_entry, revenue_account, coa_model, 
     - revenue_account: the normal revenue account used.
     - base_amount: the original invoice/bill amount.
     """
-    tax_rules = TaxRuleModel.objects.filter(company=company, is_active=True)
+    tax_rules = TaxRule.objects.filter(company=company, is_active=True)
 
     for tax in tax_rules:
         tax_amount = (base_amount * tax.rate) / Decimal("100.00")

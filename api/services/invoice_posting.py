@@ -4,10 +4,12 @@ from django_ledger.models.accounts import AccountModel
 from django_ledger.models.ledger import LedgerModel
 from api.utils.journal import post_journal_entry
 from decimal import Decimal
+from api.services.tax import calculate_and_apply_tax
+
 
 def auto_post_invoice(invoice):
     try:
-        from api.services.tax import calculate_and_apply_tax
+        from api.models.tax import TaxRuleModel
 
         company = invoice.company
         coa = company.ensure_account_structure()
