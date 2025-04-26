@@ -9,7 +9,7 @@ from api.services.tax import calculate_and_apply_tax
 
 def auto_post_invoice(invoice):
     try:
-        from api.models.tax import TaxRuleModel
+        from api.models.tax import TaxRule
 
         company = invoice.company
         coa = company.ensure_account_structure()
