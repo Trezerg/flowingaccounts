@@ -25,10 +25,10 @@ class Company(models.Model):
             return ChartOfAccountModel.objects.get(entity=self.entity)
 
         coa = ChartOfAccountModel.objects.create(
-        entity=self.entity,
-        name=f"{self.entity.name} Chart of Accounts",
-        slug=f"coa-{uuid.uuid4().hex}"  # 🔥 Always random slug
-)
+            entity=self.entity,
+            name=f"{self.entity.name} Chart of Accounts",
+            slug=f"coa-{uuid.uuid4().hex}"  # 🔥 Always random slug
+        )
 
         root = AccountModel.add_root(
             name="Root Account",
@@ -37,7 +37,14 @@ class Company(models.Model):
             coa_model=coa
         )
 
-        # Assets
+        # Add main account categories first
+        asset = root.add_child(name="Assets", code="1000", role="Asset", coa_model=coa)
+        liability = root.add_child(name="Liabilities", code="2000", role="Liability", coa_model=coa)
+        equity = root.add_child(name="Equity", code="3000", role="Equity", coa_model=coa)
+        revenue = root.add_child(name="Revenue", code="4000", role="Revenue", coa_model=coa)
+        expense = root.add_child(name="Expenses", code="5000", role="Expense", coa_model=coa)
+
+        # Now add sub-accounts to the correct parents
         cash = asset.add_child(
             name="Cash",
             code="1100",
@@ -52,22 +59,15 @@ class Company(models.Model):
             coa_model=coa
         )
 
-        # Revenue
         sales_revenue = revenue.add_child(
             name="Sales Revenue",
-            code="4000",
+            code="4100",  # Changed from 4000 to 4100 to avoid duplicate
             role="Revenue",
             coa_model=coa
         )
 
 
-        # Add other child accounts like Assets, Liabilities, etc.
-        asset = root.add_child(name="Assets", code="1000", role="Asset", coa_model=coa)
-        liability = root.add_child(name="Liabilities", code="2000", role="Liability", coa_model=coa)
-        equity = root.add_child(name="Equity", code="3000", role="Equity", coa_model=coa)
-        revenue = root.add_child(name="Revenue", code="4000", role="Revenue", coa_model=coa)
-        expense = root.add_child(name="Expenses", code="5000", role="Expense", coa_model=coa)
-
+        # Add other child accounts as needed
         return coa
 
 
