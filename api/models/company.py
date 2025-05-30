@@ -57,14 +57,10 @@ class Company(models.Model):
         return coa
 
     def get_or_create_account(self, parent, name, code, role, coa_model):
-        # Try to find an existing child with the same code and COA
-        existing = AccountModel.objects.filter(
-            parent=parent,
-            code=code,
-            coa_model=coa_model
-        ).first()
-        if existing:
-            return existing
+        # Use treebeard's get_children() and filter in Python
+        for child in parent.get_children():
+            if child.code == code and child.coa_model == coa_model:
+                return child
         return parent.add_child(name=name, code=code, role=role, coa_model=coa_model)
 
     def ensure_account_structure(self):
