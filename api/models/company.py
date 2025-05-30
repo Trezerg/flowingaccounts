@@ -19,6 +19,9 @@ class Company(models.Model):
 
         if is_new:
             self.create_account_structure()
+            # Ensure a LedgerModel exists for this entity
+            if not LedgerModel.objects.filter(entity=self.entity).exists():
+                LedgerModel.objects.create(entity=self.entity, name=f"Ledger for {self.entity.name}")
 
     def create_account_structure(self):
         if ChartOfAccountModel.objects.filter(entity=self.entity).exists():
@@ -37,40 +40,32 @@ class Company(models.Model):
             coa_model=coa
         )
 
-        # Add main account categories first
-        asset = root.add_child(name="Assets", code="1000", role="Asset", coa_model=coa)
-        liability = root.add_child(name="Liabilities", code="2000", role="Liability", coa_model=coa)
-        equity = root.add_child(name="Equity", code="3000", role="Equity", coa_model=coa)
-        revenue = root.add_child(name="Revenue", code="4000", role="Revenue", coa_model=coa)
-        expense = root.add_child(name="Expenses", code="5000", role="Expense", coa_model=coa)
+        # Add main account categories first (use get_or_create_account)
+        asset = self.get_or_create_account(root, "Assets", "1000", "Asset", coa)
+        liability = self.get_or_create_account(root, "Liabilities", "2000", "Liability", coa)
+        equity = self.get_or_create_account(root, "Equity", "3000", "Equity", coa)
+        revenue = self.get_or_create_account(root, "Revenue", "4000", "Revenue", coa)
+        expense = self.get_or_create_account(root, "Expenses", "5000", "Expense", coa)
 
-        # Now add sub-accounts to the correct parents
-        cash = asset.add_child(
-            name="Cash",
-            code="1100",
-            role="Asset",
-            coa_model=coa
-        )
-
-        accounts_receivable = asset.add_child(
-            name="Accounts Receivable",
-            code="1200",
-            role="Asset",
-            coa_model=coa
-        )
-
-        sales_revenue = revenue.add_child(
-            name="Sales Revenue",
-            code="4100",  # Changed from 4000 to 4100 to avoid duplicate
-            role="Revenue",
-            coa_model=coa
-        )
+        # Now add sub-accounts to the correct parents (use get_or_create_account)
+        cash = self.get_or_create_account(asset, "Cash", "1100", "Asset", coa)
+        accounts_receivable = self.get_or_create_account(asset, "Accounts Receivable", "1200", "Asset", coa)
+        sales_revenue = self.get_or_create_account(revenue, "Sales Revenue", "4100", "Revenue", coa)
 
 
         # Add other child accounts as needed
         return coa
 
-
+    def get_or_create_account(self, parent, name, code, role, coa_model):
+        # Try to find an existing child with the same code and COA
+        existing = AccountModel.objects.filter(
+            parent=parent,
+            code=code,
+            coa_model=coa_model
+        ).first()
+        if existing:
+            return existing
+        return parent.add_child(name=name, code=code, role=role, coa_model=coa_model)
 
     def ensure_account_structure(self):
         """
