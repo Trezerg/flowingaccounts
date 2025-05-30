@@ -1,4 +1,4 @@
-from django_ledger.models.transactions import TransactionModel
+from api.models.transaction import TransactionModel
 from django_ledger.models.journal_entry import JournalEntryModel
 from django_ledger.models.accounts import AccountModel
 from django_ledger.models.ledger import LedgerModel
