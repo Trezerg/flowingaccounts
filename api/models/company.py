@@ -47,6 +47,9 @@ class Company(models.Model):
         revenue = self.get_or_create_account(root, "Revenue", "4000", "Revenue", coa)
         expense = self.get_or_create_account(root, "Expenses", "5000", "Expense", coa)
 
+        # Add key sub-accounts
+        accounts_payable = self.get_or_create_account(liability, "Accounts Payable", "2100", "Liability", coa)
+
         # Now add sub-accounts to the correct parents (use get_or_create_account)
         cash = self.get_or_create_account(asset, "Cash", "1100", "Asset", coa)
         accounts_receivable = self.get_or_create_account(asset, "Accounts Receivable", "1200", "Asset", coa)

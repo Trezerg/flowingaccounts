@@ -38,29 +38,60 @@ class PaymentModel(models.Model):
 
     def _create_journal_entry(self):
         coa = self.company.ensure_account_structure()
-        receivable = AccountModel.objects.get(code="1200", coa_model=coa)
-        cash_or_bank_code = "1000" if self.method == "cash" else "1100"
-        cash_or_bank = AccountModel.objects.get(code=cash_or_bank_code, coa_model=coa)
         ledger = LedgerModel.objects.get(entity=self.company.entity)
 
-        journal = JournalEntryModel.objects.create(
-            ledger=ledger,
-            description=f"Payment for {'Invoice ' + str(self.invoice.id) if self.invoice else 'Bill ' + str(self.bill.id)}"
-        )
-
-        TransactionModel.objects.create(
-            journal_entry=journal,
-            account=cash_or_bank,
-            amount=self.amount,
-            tx_type="debit"
-        )
-
-        TransactionModel.objects.create(
-            journal_entry=journal,
-            account=receivable,
-            amount=self.amount,
-            tx_type="credit"
-        )
+        if self.invoice:
+            # Incoming payment (customer invoice)
+            receivable = AccountModel.objects.get(code="1200", coa_model=coa)
+            cash_or_bank_code = "1000" if self.method == "cash" else "1100"
+            cash_or_bank = AccountModel.objects.get(code=cash_or_bank_code, coa_model=coa)
+            journal = JournalEntryModel.objects.create(
+                ledger=ledger,
+                description=f"Payment for Invoice {self.invoice.id}"
+            )
+            # DR: Cash/Bank, CR: Accounts Receivable
+            from api.models.transaction import TransactionModel
+            TransactionModel.objects.create(
+                journal_entry=journal,
+                account=cash_or_bank,
+                amount=self.amount,
+                tx_type="debit",
+                description=f"Payment received for Invoice {self.invoice.id}"
+            )
+            TransactionModel.objects.create(
+                journal_entry=journal,
+                account=receivable,
+                amount=self.amount,
+                tx_type="credit",
+                description=f"Payment received for Invoice {self.invoice.id}"
+            )
+        elif self.bill:
+            # Outgoing payment (vendor bill)
+            payable = AccountModel.objects.get(code="2100", coa_model=coa)
+            cash_or_bank_code = "1000" if self.method == "cash" else "1100"
+            cash_or_bank = AccountModel.objects.get(code=cash_or_bank_code, coa_model=coa)
+            journal = JournalEntryModel.objects.create(
+                ledger=ledger,
+                description=f"Payment for Bill {self.bill.id}"
+            )
+            # DR: Accounts Payable, CR: Cash/Bank
+            from api.models.transaction import TransactionModel
+            TransactionModel.objects.create(
+                journal_entry=journal,
+                account=payable,
+                amount=self.amount,
+                tx_type="debit",
+                description=f"Vendor payment for Bill {self.bill.id}"
+            )
+            TransactionModel.objects.create(
+                journal_entry=journal,
+                account=cash_or_bank,
+                amount=self.amount,
+                tx_type="credit",
+                description=f"Vendor payment for Bill {self.bill.id}"
+            )
+        else:
+            raise ValueError("Payment must be linked to either an invoice or a bill.")
 
         post_journal_entry(journal, user=self.company.user)
 
@@ -79,4 +110,4 @@ class PaymentModel(models.Model):
                 self.bill.status = "paid"
             elif total_paid > 0:
                 self.bill.status = "partially_paid"
-            self.bill.save() 
+            self.bill.save()
