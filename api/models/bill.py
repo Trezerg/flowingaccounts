@@ -87,14 +87,31 @@ class BillModel(models.Model):
     def void(self, user=None):
         """
         Void the bill if it is not fully paid. Sets status to 'voided' and prevents future payments/postings.
-        Optionally, creates a reversal journal entry if already posted.
+        Automatically creates a reversal journal entry if posted.
         """
         if self.status not in ["draft", "submitted", "partial"]:
             raise ValueError("Only draft, submitted, or partial bills can be voided.")
         self.status = "voided"
         self.save(update_fields=["status"])
-        # Optionally: create reversal journal entry if posted
-        # (Implement if you have a posted flag or journal linkage)
+        # Create reversal journal entry if posted
+        orig_journal = JournalEntryModel.objects.filter(description__icontains=f"Bill: {self.vendor_name}", posted=True).last()
+        if orig_journal:
+            reversal = JournalEntryModel.objects.create(
+                ledger=orig_journal.ledger,
+                description=f"REVERSAL of {orig_journal.description}",
+                posted=False,
+                reversal_of=orig_journal
+            )
+            for tx in orig_journal.get_transaction_queryset():
+                TransactionModel.objects.create(
+                    journal_entry=reversal,
+                    account=tx.account,
+                    amount=tx.amount,
+                    tx_type="credit" if tx.tx_type == "debit" else "debit",
+                    description=f"Reversal of: {tx.description or ''}"
+                )
+            from api.utils.journal import post_journal_entry
+            post_journal_entry(reversal, user=user)
 
     def refund(self, amount=None, user=None):
         """
@@ -115,6 +132,25 @@ class BillModel(models.Model):
             status="posted"
         )
         self.refresh_from_db()
+        # Create reversal journal entry for the refund
+        orig_journal = JournalEntryModel.objects.filter(description__icontains=f"Bill: {self.vendor_name}", posted=True).last()
+        if orig_journal:
+            reversal = JournalEntryModel.objects.create(
+                ledger=orig_journal.ledger,
+                description=f"REFUND REVERSAL of {orig_journal.description}",
+                posted=False,
+                reversal_of=orig_journal
+            )
+            for tx in orig_journal.get_transaction_queryset():
+                TransactionModel.objects.create(
+                    journal_entry=reversal,
+                    account=tx.account,
+                    amount=refund_amount * (tx.amount / self.amount),
+                    tx_type="credit" if tx.tx_type == "debit" else "debit",
+                    description=f"Refund reversal of: {tx.description or ''}"
+                )
+            from api.utils.journal import post_journal_entry
+            post_journal_entry(reversal, user=user)
         total_paid = sum(p.amount for p in self.payments.filter(status="posted"))
         if total_paid == 0:
             self.status = "refunded"

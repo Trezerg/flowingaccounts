@@ -1,7 +1,10 @@
 from django.db import models
 from .company import Company
-from django_ledger.models.journal_entry import JournalEntryModel
-from django_ledger.models.transactions import TransactionModel
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../django-ledger')))
+from djangoledger.django_ledger.models.journal_entry import JournalEntryModel
+from django_ledger.django_ledger.models.transactions import TransactionModel
 
 class InvoiceModel(models.Model):
     STATUS_CHOICES = [
@@ -75,7 +78,8 @@ class InvoiceModel(models.Model):
                     tx_type="credit" if tx.tx_type == "debit" else "debit",
                     description=f"Reversal of: {tx.description or ''}"
                 )
-            reversal.reversal_of_id = orig_journal.id if hasattr(reversal, 'reversal_of_id') else None
+            # Set reversal_of after reversal is saved and has an id
+            reversal.reversal_of = orig_journal
             reversal.save()
             from api.utils.journal import post_journal_entry
             post_journal_entry(reversal, user=user)
@@ -116,7 +120,8 @@ class InvoiceModel(models.Model):
                     tx_type="credit" if tx.tx_type == "debit" else "debit",
                     description=f"Refund reversal of: {tx.description or ''}"
                 )
-            reversal.reversal_of_id = orig_journal.id if hasattr(reversal, 'reversal_of_id') else None
+            # Set reversal_of after reversal is saved and has an id
+            reversal.reversal_of = orig_journal
             reversal.save()
             from api.utils.journal import post_journal_entry
             post_journal_entry(reversal, user=user)
