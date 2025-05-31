@@ -35,4 +35,12 @@ class InvoiceModel(models.Model):
         if self.status == "submitted" and old_status != "submitted":
             from api.services.invoice_posting import auto_post_invoice
             print("Triggering auto_post_invoice()...")
-            auto_post_invoice(self) 
+            auto_post_invoice(self)
+
+    @property
+    def paid_amount(self):
+        return sum(payment.amount for payment in self.payments.filter(status="posted"))
+
+    @property
+    def balance_due(self):
+        return self.amount - self.paid_amount

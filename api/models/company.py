@@ -30,30 +30,41 @@ class Company(models.Model):
         coa = ChartOfAccountModel.objects.create(
             entity=self.entity,
             name=f"{self.entity.name} Chart of Accounts",
-            slug=f"coa-{uuid.uuid4().hex}"  # 🔥 Always random slug
+            slug=f"coa-{uuid.uuid4().hex}"
         )
 
-        root = AccountModel.add_root(
-            name="Root Account",
-            code="0000",
-            role="Equity",
-            coa_model=coa
-        )
+        # Always check for existing root for this COA
+        root = AccountModel.get_root_nodes().filter(coa_model=coa, code="0000").first()
+        if not root:
+            root = AccountModel.add_root(
+                name="Root Account",
+                code="0000",
+                role="Equity",
+                coa_model=coa
+            )
 
-        # Add main account categories first (use get_or_create_account)
-        asset = self.get_or_create_account(root, "Assets", "1000", "Asset", coa)
-        liability = self.get_or_create_account(root, "Liabilities", "2000", "Liability", coa)
-        equity = self.get_or_create_account(root, "Equity", "3000", "Equity", coa)
-        revenue = self.get_or_create_account(root, "Revenue", "4000", "Revenue", coa)
-        expense = self.get_or_create_account(root, "Expenses", "5000", "Expense", coa)
+        # Helper to ensure uniqueness by code+coa_model under parent
+        def safe_get_or_create_account(parent, name, code, role, coa_model):
+            parent.refresh_from_db()  # Ensure latest children from DB
+            for child in parent.get_children():
+                if child.code == code and child.coa_model_id == coa_model.id:
+                    return child
+            return parent.add_child(name=name, code=code, role=role, coa_model=coa_model)
+
+        # Add main account categories first (use safe_get_or_create_account)
+        asset = safe_get_or_create_account(root, "Assets", "1000", "Asset", coa)
+        liability = safe_get_or_create_account(root, "Liabilities", "2000", "Liability", coa)
+        equity = safe_get_or_create_account(root, "Equity", "3000", "Equity", coa)
+        revenue = safe_get_or_create_account(root, "Revenue", "4000", "Revenue", coa)
+        expense = safe_get_or_create_account(root, "Expenses", "5000", "Expense", coa)
 
         # Add key sub-accounts
-        accounts_payable = self.get_or_create_account(liability, "Accounts Payable", "2100", "Liability", coa)
+        accounts_payable = safe_get_or_create_account(liability, "Accounts Payable", "2100", "Liability", coa)
 
-        # Now add sub-accounts to the correct parents (use get_or_create_account)
-        cash = self.get_or_create_account(asset, "Cash", "1100", "Asset", coa)
-        accounts_receivable = self.get_or_create_account(asset, "Accounts Receivable", "1200", "Asset", coa)
-        sales_revenue = self.get_or_create_account(revenue, "Sales Revenue", "4100", "Revenue", coa)
+        # Now add sub-accounts to the correct parents (use safe_get_or_create_account)
+        cash = safe_get_or_create_account(asset, "Cash", "1100", "Asset", coa)
+        accounts_receivable = safe_get_or_create_account(asset, "Accounts Receivable", "1200", "Asset", coa)
+        sales_revenue = safe_get_or_create_account(revenue, "Sales Revenue", "4100", "Revenue", coa)
 
 
         # Add other child accounts as needed
