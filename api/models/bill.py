@@ -9,6 +9,9 @@ class BillModel(models.Model):
         ('submitted', 'Submitted'),
         ('paid', 'Paid'),
         ('cancelled', 'Cancelled'),
+        ('voided', 'Voided'),
+        ('partial_refund', 'Partially Refunded'),
+        ('refunded', 'Refunded'),
     ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -79,4 +82,42 @@ class BillModel(models.Model):
 
         except Exception as e:
             print(f"Auto-posting bill failed: {e}")
-            # Consider adding retry logic or admin notification here 
+            # Consider adding retry logic or admin notification here
+
+    def void(self, user=None):
+        """
+        Void the bill if it is not fully paid. Sets status to 'voided' and prevents future payments/postings.
+        Optionally, creates a reversal journal entry if already posted.
+        """
+        if self.status not in ["draft", "submitted", "partial"]:
+            raise ValueError("Only draft, submitted, or partial bills can be voided.")
+        self.status = "voided"
+        self.save(update_fields=["status"])
+        # Optionally: create reversal journal entry if posted
+        # (Implement if you have a posted flag or journal linkage)
+
+    def refund(self, amount=None, user=None):
+        """
+        Refund a paid bill. Creates a negative journal entry and records refund as a PaymentModel with negative amount.
+        If amount is None, refund the full paid amount.
+        """
+        if self.status != "paid":
+            raise ValueError("Only fully paid bills can be refunded.")
+        refund_amount = amount or sum(p.amount for p in self.payments.filter(status="posted"))
+        if refund_amount <= 0 or refund_amount > sum(p.amount for p in self.payments.filter(status="posted")):
+            raise ValueError("Invalid refund amount.")
+        from api.models.payment import PaymentModel
+        PaymentModel.objects.create(
+            company=self.company,
+            bill=self,
+            amount=-refund_amount,
+            method="cash",
+            status="posted"
+        )
+        self.refresh_from_db()
+        total_paid = sum(p.amount for p in self.payments.filter(status="posted"))
+        if total_paid == 0:
+            self.status = "refunded"
+        else:
+            self.status = "partial_refund"
+        self.save(update_fields=["status"])

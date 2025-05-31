@@ -26,6 +26,9 @@ class PaymentModel(models.Model):
         return f"Payment of {self.amount} for {'Invoice ' + str(self.invoice.id) if self.invoice else 'Bill ' + str(self.bill.id)} by {self.method}"
 
     def save(self, *args, **kwargs):
+        # Prevent payments/postings if invoice or bill is voided
+        if (self.invoice and self.invoice.status == "voided") or (self.bill and self.bill.status == "voided"):
+            raise ValueError("Cannot make payments on a voided invoice or bill.")
         is_new = self.pk is None
         super().save(*args, **kwargs)
 
